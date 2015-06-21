@@ -1,0 +1,44 @@
+---
+title: "Coursera Practical Machine Learning - Course Project"
+date: "Sunday, June 21, 2015"
+output: html_document
+---
+##Executive Summary
+This project takes data collected from Human Activity Recognition research that was focused on the quality of people's execution of the Unilateral Dumbbell Bicept Curl.  There were 5 different classes of execution - A, the correct execution of the exercies, and 4 incorrect executions.  The testing data contained just under 20 thousand observations of 160 different variables.  Using machine learning, we've fit a model to the data that predicts which of the 5 classes of execution an individual observation should fit into.
+
+###Exploratory Data Analysis
+To begin, we loaded in the training data set and found that many of the columns were over 90% empty or NA.  To get started on tidying up the data set, we created a list of "good columns" by removing those where there were over 1000 NAs.
+```{r}
+training=read.csv("pml-training.csv",header=TRUE)
+NAcount=sapply(training,function(x) sum(is.na(x)))
+goodColumns=names(NAcount[NAcount<1000])
+```
+
+Next we removed the timestamp columns, since we're assuming that time is not a factor in the results.
+```{r}
+#Remove timestamp variables
+goodColumns=goodColumns[-grep("timestamp",goodColumns)]
+```
+
+Finally, looking at the summary of the dataset, we picked out the rest of the columns that did not have summary statisics and manually created that list.  This narrowed down the number of potential predictors from the original 159 to 54.
+
+###Data Partitioning
+Since we were given a test set for the final evaluation of the model, we decided to partition the given training data set to give us data to test on prior to the "official" evaluation.  In working with the models, we also found that 70% of the training data was much too large of a dataset to efficiently work with the different modeling options, since the processing was very slow.  Our training data set was chosen as 30% of the tidy dataset created so far.  We also took a look at the near-zero-variance variables to see if any others could be removed from the predictors.
+
+```{r message=FALSE,echo=FALSE}
+library(caret)
+inTrain=createDataPartition(y=training$classe,p=0.30, list=FALSE)
+subTraining=training[inTrain,]
+subTest=training[-inTrain,]
+nsv=nearZeroVar(subTraining,saveMetrics=TRUE)
+```
+
+###Model Fitting
+We tried a number of different models to find a good fit for the data.  
+
+* The "glm" model did not work since it is only designed for two class outcomes, rather than the 5 we are working with.
+* Looking at rPart - the model ran with 98% accuracy. 
+* Finally we looked at using the RandomForest model - this was much, much slower, with only a slight incresase in accuracy.
+
+####Out of sample error.
+The accuracy of the Random Forest model was 98.19%.  Therefore, on a test sample of 20 observations, we would expect to get 19.6/20 correct.  This is consistent with the 20/20 result that we got.
